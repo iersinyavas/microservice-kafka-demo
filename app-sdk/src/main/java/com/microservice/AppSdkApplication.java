@@ -1,8 +1,6 @@
 package com.microservice;
 
-import com.microservice.domain.OrderEvent;
 import com.microservice.options.ProductChoice;
-import com.microservice.options.ProductEnum;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 

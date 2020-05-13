@@ -11,5 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class OrderEvent {
     private String orderEventId;
+    private String serverPort;
+    private Long currentTotal;
     private Order order;
 }

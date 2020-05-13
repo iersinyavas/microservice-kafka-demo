@@ -1,6 +1,5 @@
 package com.microservice.service.producer;
 
-import com.microservice.domain.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -9,7 +8,7 @@ import org.springframework.stereotype.Service;
 public class UserProducerService {
     private static final String TOPIC_NAME ="user";
 
-    private final KafkaTemplate<String, User> kafkaTemplate;
+    /*private final KafkaTemplate<String, User> kafkaTemplate;
 
     @Autowired
     public UserProducerService(KafkaTemplate<String, User> kafkaTemplate) {
@@ -18,5 +17,5 @@ public class UserProducerService {
 
     public void send(User user){
         kafkaTemplate.send(TOPIC_NAME,user);
-    }
+    }*/
 }

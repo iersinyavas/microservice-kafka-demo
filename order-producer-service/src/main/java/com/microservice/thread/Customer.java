@@ -22,7 +22,11 @@ public class Customer extends Thread {
     public void run() {
         Random random = new Random();
         while (true) {
-
+            try {
+                Thread.sleep(random.nextInt(60000));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             spend();
             try {
                 if (getOrderEvent() != null) {
@@ -31,13 +35,6 @@ public class Customer extends Thread {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-
-            try {
-                Thread.sleep(random.nextInt(60000));
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
         }
     }
 

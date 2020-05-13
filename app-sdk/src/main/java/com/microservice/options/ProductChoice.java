@@ -10,13 +10,21 @@ public class ProductChoice {
 
     Random random = new Random();
     private List<ProductEnum> productEnumList = Arrays.asList(
-            ProductEnum.Monitor,
-            ProductEnum.Keyboard,
-            ProductEnum.Laptop,
-            ProductEnum.Mouse
+            ProductEnum.A,
+            ProductEnum.B,
+            ProductEnum.C,
+            ProductEnum.D,
+            ProductEnum.E,
+            ProductEnum.F,
+            ProductEnum.G
     );
 
     public synchronized OrderEvent createCart(){
+        try {
+            Thread.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         String pattern = "yyyy-dd-MM HH:mm:ss";
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
         Date date = new Date();
@@ -27,17 +35,16 @@ public class ProductChoice {
                 .productList(new ArrayList<>())
                 .date(dateString)
                 .build();
-        IntStream.range(0, random.nextInt(4)+1).forEach(
+        IntStream.range(0, random.nextInt(7)+1).forEach(
                 value -> {
-                    order.getProductList().add(productEnumList.get(random.nextInt(4)).assignToProduct());
+                    order.getProductList().add(productEnumList.get(random.nextInt(7)).assignToProduct());
                 }
         );
-        order.setCartTotal(order.getProductList().stream().map(product -> product.getPrice() * product.getQuantity()).reduce(0.0, (a, b) -> Double.sum(a, b)));
+        order.setCartTotal(order.getProductList().stream().map(product -> product.getPrice() * product.getQuantity()).reduce(0L, (a, b) -> Long.sum(a, b)));
         order.setCartQuantity(order.getProductList().stream().map(product -> product.getQuantity()).reduce(0, (a,b) -> a + b));
-        String orderEventId = ""+(date.getYear()+1900)+date.getMonth()+date.getDate()+date.getDay()+date.getHours()+date.getMinutes()+date.getSeconds();
 
         return OrderEvent.builder()
-                .orderEventId(orderEventId)
+                .orderEventId(Long.toString(System.currentTimeMillis()))
                 .order(order)
                 .build();
     }

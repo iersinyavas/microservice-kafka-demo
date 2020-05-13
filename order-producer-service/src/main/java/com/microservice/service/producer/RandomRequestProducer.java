@@ -3,7 +3,6 @@ package com.microservice.service.producer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.microservice.thread.Customer;
 import com.microservice.domain.OrderEvent;
-import com.microservice.thread.Support;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -20,121 +19,122 @@ public class RandomRequestProducer implements CommandLineRunner{
     @Autowired
     OrderProducerService orderProducerService;
 
-    public static BlockingQueue<OrderEvent> customerBlockingQueue = new ArrayBlockingQueue<OrderEvent>(20);
+    public static BlockingQueue<OrderEvent> customerBlockingQueue = new ArrayBlockingQueue<OrderEvent>(1000);
     public static List<Customer> customerList = new ArrayList<>();
     public static int customerId = 1;
     public static int orderId = 1;
     public static String threadName;
 
+    static Long currentTotal=0L;
+
     public static Customer createCustomerThread() {
-        log.info("{} lu müşteri oluşturuldu...", customerId);
+        log.info("{} nolu müşteri oluşturuldu...", customerId);
         threadName = String.valueOf(customerId);
         return new Customer(customerId++, "Thread"+threadName);
     }
 
-    public static Support createSupportThread() {
-        log.info("{} lu müşteri oluşturuldu...", customerId);
-        threadName = String.valueOf(customerId);
-        return new Support(customerBlockingQueue);
-    }
-
-    public void send(){
-        Random random = new Random();
-        boolean isStart = false;
-        while (true) {
-            Customer customer = null;
-            if (random.nextInt(5) == 1) {
-                System.out.println("---------------");
-                customer = RandomRequestProducer.createCustomerThread();
-                customer.start();
-                customerList.add(customer);
-            }
-
-            if (!customerBlockingQueue.isEmpty()){
-                try {
-                    OrderEvent orderEvent = customerBlockingQueue.take();
-                    orderEvent.getOrder().setOrderId(orderId++);
-                    orderProducerService.sendOrder(orderEvent);
-                    log.info("Queue size : {}, Thread: {}", customerBlockingQueue.size(), Thread.currentThread().getName());
-                    System.out.println();
-                } catch (InterruptedException  | JsonProcessingException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            /*if (customerList.size() == 30){
-                Thread thread = new Thread(() -> {
-                    try {
-                        OrderEvent orderEvent = customerBlockingQueue.take();
-                        orderEvent.getOrder().setOrderId(orderId++);
-                        orderProducerService.sendOrder(orderEvent);
-                        log.info("Queue size : {}, Thread: {}", customerBlockingQueue.size(), Thread.currentThread());
-                        System.out.println();
-                        log.info("Yeni thread oluşturuldu...");
-                    } catch (InterruptedException  | JsonProcessingException e) {
-                        e.printStackTrace();
-                    }
-                });
-
-                thread.start();
-            }*/
-
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+    private synchronized static int orderIdPlus(){
+        return orderId++;
     }
 
     @Override
     public void run(String... args) throws Exception {
-        send();
+/*        ThreadControl threadControl = new ThreadControl();
+        Thread thread = new Thread(() -> {
+            threadControl.continueMethod();
+        });
+
+        Thread thread1 = new Thread(() ->{
+            threadControl.customerControl();
+        });
+
+        Thread thread2 = new Thread(() ->{
+            threadControl.queueControl();
+        });
+
+        thread.start();
+        thread1.start();
+        thread2.start();*/
+
     }
 
-    /*@Autowired
-    OrderProducerService orderProducerService;
-
-    public static List<Customer> customerList = new ArrayList<>();
-    public static int customerId = 1;
-    public static int orderId = 1;
-    public static String threadName;
-
-    public static Customer createThread() {
-        log.info("{} lu müşteri oluşturuldu...", customerId);
-        threadName = String.valueOf(customerId);
-        ProductChoice productChoice = new ProductChoice();
-        OrderEvent orderEvent = productChoice.createCart();
-        return new Customer(customerId++, "Thread"+threadName, orderEvent);
-    }
-
-    public void send(){
+    class ThreadControl{
         Random random = new Random();
+        public void customerControl(){
+            while(true) {
+                synchronized (this) { // lock kullanıldı
+                    Customer customer = null;
+                    if (random.nextInt(10) == 1) {
+                        System.out.println("---------------");
+                        customer = RandomRequestProducer.createCustomerThread();
+                        customer.start();
+                        customerList.add(customer);
+                    }
 
-        while (true) {
-            Customer customer = null;
-            if (random.nextInt(3) == 1) {
-                System.out.println("---------------");
-                customer = RandomRequestProducer.createThread();
-                customer.start();
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    try {
+                        Thread.sleep(random.nextInt(2000));
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
-                customerList.add(customer);
-                customerList.stream().forEach(
-                        customer1 -> {
-                            try {
-                                OrderEvent orderEvent = customer1.getOrderEvent();
-                                orderEvent.getOrder().setOrderId(orderId++);
-                                orderProducerService.sendOrder(orderEvent);
-                            } catch (JsonProcessingException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                );
             }
         }
-    }*/
+
+        public void queueControl(){
+            while (true) {
+                synchronized (this) {
+                    if (!customerBlockingQueue.isEmpty()) {
+                        notify();
+                    }
+                }
+            }
+        }
+
+        public void continueMethod() {
+            while (true) {
+                synchronized (this) {
+                    if (!customerBlockingQueue.isEmpty()) {
+                        currentTotal += customerBlockingQueue.stream().map(orderEvent -> orderEvent.getOrder().getCartTotal()).reduce(0L, (a, b) -> Long.sum(a, b));
+                        customerBlockingQueue.stream().forEach(
+                                orderEvent1 -> {
+                                    try {
+                                        OrderEvent orderEvent = customerBlockingQueue.take();
+                                        orderEvent.getOrder().setOrderId(orderIdPlus());
+
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                });
+                        /*customerBlockingQueue.stream().forEach(
+                                orderEvent1 -> {
+                                    try {
+                                        OrderEvent orderEvent = customerBlockingQueue.take();
+                                        orderEvent.getOrder().setOrderId(orderIdPlus());
+                                        orderProducerService.send(orderEvent);
+                                    } catch (InterruptedException | JsonProcessingException e) {
+                                        e.printStackTrace();
+                                    }
+                                });*/
+                        OrderEvent orderEvent = new OrderEvent();
+                        orderEvent.setCurrentTotal(currentTotal);
+                        try {
+                            orderProducerService.send(orderEvent);
+                        } catch (JsonProcessingException e) {
+                            e.printStackTrace();
+                        }
+                        System.out.println();
+                    } else {
+                        try {
+                            wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    log.info("Queue size : {}, Thread: {}", customerBlockingQueue.size(), Thread.currentThread().getName());
+
+                }
+            }
+        }
+    }
 }

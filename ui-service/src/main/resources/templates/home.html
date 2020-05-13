@@ -1,0 +1,207 @@
+<!--<!DOCTYPE html>-->
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Satış</title>
+    <link href="/webjars/bootstrap/css/bootstrap.min.css" rel="stylesheet"> <!--http://localhost:8000/api/sale-->
+    <!--<script src="/webjars/jquery/jquery.min.js"></script>-->
+    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
+    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+    <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js"></script>
+    <script type="text/javascript">
+        /* Chart Configuration */
+        var saleConfig = {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Satış',
+                    backgroudColor: 'rgb(255, 99, 132)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    data: [],
+                    fill: false
+
+                }]
+            },
+            options: {
+                responsive: true,
+                title: {
+                    display: true,
+                    text: 'Satış'
+                },
+                tooltips: {
+                    mode: 'customer-sale.html',
+                    intersect: false
+                },
+                hover: {
+                    mode: 'nearest',
+                    intersect: true
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                        type: 'time',
+                        time: {
+                            displayFormats: {
+                                quarter: 'h:mm:ss a'
+                            }
+                        },
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Zaman'
+                        }
+                    }],
+                    yAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Satış'
+                        }
+                    }]
+                }
+            }
+        };
+
+        var populationConfig = {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Nüfus',
+                    backgroudColor: 'rgb(255, 99, 132)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    data: [],
+                    fill: false
+
+                }]
+            },
+            options: {
+                responsive: true,
+                title: {
+                    display: true,
+                    text: 'Nüfus'
+                },
+                tooltips: {
+                    mode: 'index',
+                    intersect: false
+                },
+                hover: {
+                    mode: 'nearest',
+                    intersect: true
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                        type: 'time',
+                        time: {
+                            displayFormats: {
+                                quarter: 'h:mm:ss a'
+                            }
+                        },
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Zaman'
+                        }
+                    }],
+                    yAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Nüfus'
+                        }
+                    }]
+                }
+            }
+        };
+
+        var saleStompClient;
+        var populationStompClient;
+        /* Document Ready Event */
+        $(document).ready(function () {
+
+            var saleCtx = document.getElementById('saleChart').getContext('2d');
+            window.saleLine = new Chart(saleCtx, saleConfig);
+
+            /* Configuring WebSocket on Client Side */
+            var saleSocket = new SockJS('/sale-socket');
+            saleStompClient = Stomp.over(saleSocket);
+
+            saleStompClient.connect({}, function (frame) {
+                saleStompClient.subscribe('/topic/order-sale', function (orderEvent) {
+                    $('#sale').text(JSON.parse(orderEvent.body).currentTotal);
+                    /* Push new data On X-Axis of Chart */
+                    saleConfig.data.labels.push(new Date());
+                    /* Push new data on Y-Axis of chart */
+                    saleConfig.data.datasets.forEach(function (dataset) {
+                        dataset.data.push(JSON.parse(orderEvent.body).currentTotal);
+                    });
+                    window.saleLine.update();
+                });
+            });
+
+            var populationCtx = document.getElementById('populationChart').getContext('2d');
+            window.populationLine = new Chart(populationCtx, populationConfig);
+
+            var populationSocket = new SockJS('/population-socket');
+            populationStompClient = Stomp.over(populationSocket);
+
+            populationStompClient.connect({}, function (frame) {
+                populationStompClient.subscribe('/topic/population', function (temperature) {
+                    $('#population').text(JSON.parse(temperature.body).population);
+                    $('#year').text(JSON.parse(temperature.body).year);
+                    /* Push new data On X-Axis of Chart */
+                    populationConfig.data.labels.push(new Date());
+                    /* Push new data on Y-Axis of chart */
+                    populationConfig.data.datasets.forEach(function (dataset) {
+                        dataset.data.push(JSON.parse(temperature.body).population);
+                    });
+                    window.populationLine.update();
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+
+<div class="alert alert-danger" role="alert" style="width:300px;margin-left:40%;margin-top:10px;">
+    <p class="text-center">Güncel Satış : <b id="sale">0</b></p><p class="text-center">Ui servisteki SaleConsumerService deki KafkaListener i yorum satırı haline getirdin. DÜZELT</p>
+</div>
+<div class="model">
+    <div class="modal-dialog" style="width:80%;height:auto">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Satış</h5>
+            </div>
+            <div class="model-body">
+                <div class="container" style="width:80%">
+                    <canvas id="saleChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-danger" role="alert" style="width:300px;margin-left:40%;margin-top:10px;">
+    <p class="text-center">Nüfus : <b id="population">0</b></p><p class="text-center">Yıl : <b id="year">0</b></p>
+</div>
+<div class="model">
+    <div class="modal-dialog" style="width:80%;height:auto">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nüfus</h5>
+            </div>
+            <div class="model-body">
+                <div class="container" style="width:80%">
+                    <canvas id="populationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -11,17 +11,17 @@ import java.util.Random;
 @Slf4j
 @Getter
 public enum ProductEnum {
-    Monitor(900.0), Keyboard(500.0), Mouse(50.0), Laptop(3500.0);
+    A(1), B(5), C(10), D(20), E(50), F(100), G(200);
 
     Product product = null;
     Random random = new Random();
-    double price;
+    long price;
     int quantity;
-    double total;
+    long total;
 
-    ProductEnum(double price){
+    ProductEnum(long price){
         this.price = price;
-        this.quantity = random.nextInt(5)+1;
+        this.quantity = random.nextInt(random.nextInt(random.nextInt(10)+1)+1)+1;
         this.total = this.price * this.quantity;
     }
 

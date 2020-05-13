@@ -18,5 +18,5 @@ public class Order {
     private List<Product> productList;
     private String date;
     private Integer cartQuantity;
-    private Double cartTotal;
+    private Long cartTotal;
 }

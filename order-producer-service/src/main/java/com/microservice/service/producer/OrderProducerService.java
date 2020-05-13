@@ -9,13 +9,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.ListenableFutureCallback;
 
+import java.util.Arrays;
+
 @Slf4j
 @Service
-@Async
 public class OrderProducerService {
 
     @Autowired
@@ -24,10 +26,13 @@ public class OrderProducerService {
     @Autowired
     ObjectMapper objectMapper;
 
-    public void sendOrder(OrderEvent orderEvent) throws JsonProcessingException {
-        String key = orderEvent.getOrderEventId();
-        String value = objectMapper.writeValueAsString(orderEvent.getOrder());
-        ListenableFuture<SendResult<String, String>> order = kafkaTemplate.send("order-message", key, value);
+    String topic1 = "order";
+    String topic2 = "sale";
+
+    public synchronized void send(OrderEvent orderEvent) throws JsonProcessingException {
+        String value = objectMapper.writeValueAsString(orderEvent);
+        ListenableFuture<SendResult<String, String>> order = kafkaTemplate.send(topic1, 0, "order-1-order", value);
+
         order.addCallback(new ListenableFutureCallback<SendResult<String, String>>() {
             @Override
             public void onFailure(Throwable ex) {
@@ -37,9 +42,9 @@ public class OrderProducerService {
             @Override
             public void onSuccess(SendResult<String, String> result) {
                 log.info("Order gönderildi... {}", result.toString());
-                log.info("orderEventId : {}, value : {}, partition : {}", key, value, result.getRecordMetadata().partition());
+                log.info("orderEventId : {}, value : {}, partition : {}", orderEvent.getOrderEventId(), value, result.getRecordMetadata().partition());
             }
         });
-
     }
+
 }
